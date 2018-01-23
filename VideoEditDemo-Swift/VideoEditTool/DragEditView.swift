@@ -10,7 +10,7 @@ import UIKit
 
 open class DragEditView: UIView {
 
-    // MARK: 系统方法
+    // MARK: -  系统方法
     override init(frame: CGRect) {
         super.init(frame: frame)
     }
@@ -19,17 +19,16 @@ open class DragEditView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // MARK: 公有属性
+    // MARK: -  公有属性
     open var hitTestEdgeInsets : UIEdgeInsets!
     
-    // MARK: 私有属性
-    
+    // MARK: -  私有属性
     var imgView : UIImageView!
     var isLeft = false
     
-    // MARK: 私有方法
+    // MARK: -  私有方法
     static func initEditView(frame:CGRect , isLeft:Bool) -> DragEditView {
-        let `self` =   DragEditView.init(frame: frame)
+        let `self` =  DragEditView.init(frame: frame)
         self.backgroundColor = UIColor.clear
         self.isLeft = isLeft
         let backView = UIView.init(frame: self.bounds)

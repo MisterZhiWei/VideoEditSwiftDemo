@@ -31,7 +31,6 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         testButton.setTitle("选择编辑视频", for: UIControlState.normal)
         testButton.setTitleColor(UIColor.green, for: UIControlState.normal)
         self.view.addSubview(testButton)
-        
     }
     
     func SelectVideo() {
@@ -44,7 +43,7 @@ class ViewController: UIViewController, UINavigationControllerDelegate, UIImageP
         }
     }
     
-    // MARK: UIImagePickerControllerDelegate 代理方法
+    // MARK: -  UIImagePickerControllerDelegate 代理方法
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]){
         picker.dismiss(animated: true, completion: nil)
         let url = info[UIImagePickerControllerMediaURL]

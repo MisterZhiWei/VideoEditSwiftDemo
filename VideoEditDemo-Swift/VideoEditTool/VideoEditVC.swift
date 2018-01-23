@@ -15,42 +15,38 @@ let Screen_Width = UIScreen.main.bounds.size.width
 let Screen_Height = UIScreen.main.bounds.size.height
 
 // MARK: 全局变量
-var playerItem : AVPlayerItem!
-var playerLayer : AVPlayerLayer!
-var player : AVPlayer!
-
-var editScrollView : UIScrollView!
-var bottomView     : UIView!
-var leftDragView   : DragEditView!
-var rightDragView  : DragEditView!
-var line           : UIView!
-var topBorder      : UIView!
-var bottomBorder   : UIView!
-
-var repeatTimer    :Timer! // 循环播放计时器
-var lineMoveTimer  :Timer! // 播放条移动计时器
-var framesArray    :NSMutableArray! // 视频帧数组
-var tempVideoPath  : String!
-var leftStartPoint : CGPoint!
-var rightStartPoint: CGPoint!
+var playerItem      : AVPlayerItem!
+var playerLayer     : AVPlayerLayer!
+var player          : AVPlayer!
+var editScrollView  : UIScrollView!
+var bottomView      : UIView!
+var leftDragView    : DragEditView!
+var rightDragView   : DragEditView!
+var line            : UIView!
+var topBorder       : UIView!
+var bottomBorder    : UIView!
+var repeatTimer     : Timer! // 循环播放计时器
+var lineMoveTimer   : Timer! // 播放条移动计时器
+var framesArray     : NSMutableArray! // 视频帧数组
+var tempVideoPath   : String!
+var leftStartPoint  : CGPoint!
+var rightStartPoint : CGPoint!
+var startTime       : CGFloat = 0.0  // 编辑框内视频开始时间秒
+var endTime         : CGFloat = 10.0  // 编辑框内视频结束时间秒
+var startPointX     : CGFloat!   // 编辑框起始点
+var endPointX       : CGFloat!   // 编辑框结束点
+var IMG_Width       : CGFloat!   // 视频帧宽度
+var linePositionX   : CGFloat!   // 播放条的位置
+var boderX          : CGFloat?   // 编辑框边线X
+var boderWidth      : CGFloat?   // 编辑框边线长度
+var touchPointX     : CGFloat!   // 编辑视图区域外触点
+var isEdited        = false // YES：编辑完成
+let EDGE_EXTENSION_FOR_THUMB = 20.0
 var isDraggingRightOverlayView = false // 拖拽左侧编辑框
 var isDraggingLeftOverlayView  = false // 拖拽右侧编辑框
-var isEdited        = false // YES：编辑完成
-var startTime :CGFloat = 0.0  // 编辑框内视频开始时间秒
-var endTime   :CGFloat = 10.0  // 编辑框内视频结束时间秒
-var startPointX     :CGFloat!   // 编辑框起始点
-var endPointX       :CGFloat!   // 编辑框结束点
-var IMG_Width       :CGFloat!   // 视频帧宽度
-var linePositionX   :CGFloat!   // 播放条的位置
-var boderX          :CGFloat?   // 编辑框边线X
-var boderWidth      :CGFloat?   // 编辑框边线长度
-var touchPointX     :CGFloat!   // 编辑视图区域外触点
-let EDGE_EXTENSION_FOR_THUMB = 20.0
-
 
 class VideoEditVC: UIViewController,UIScrollViewDelegate {
-
-    // MARK: 公有变量
+    // MARK: -  公有变量
     /**
      * 默认为true , false：不显示视频帧并不可编辑剪切视频
      */
@@ -60,23 +56,20 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
      待编辑视频的URL
      */
     open var videoUrl : NSURL?{
-    
         didSet{
             print("已经设置了videoURL")
         }
     }
 
-    // MARK: life Cycle
+    // MARK: -  life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = UIColor.black
-        
         self.initSettings()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
         invalidatePlayer()
     }
     
@@ -85,12 +78,13 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         // Dispose of any resources that can be recreated.
     }
     
-    // MARK: 私有方法
+    // MARK: -  私有方法
     func initSettings() {
         // 手机静音时可播放声音
         let session = AVAudioSession.sharedInstance()
         do{ try session.setActive(true) }
         catch{}
+        
         do{ try  session.setCategory(AVAudioSessionCategoryPlayback) }
         catch{}
 
@@ -106,7 +100,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         self.initPlayer(videoUrl: self.videoUrl!)
     }
     
-    // MARK: 视图初始化
+    // MARK: -  视图初始化
     func initSubViews() {
         let backBtn = UIButton.init(frame: CGRect.init(x: 0, y: 20, width: 60, height: 50))
         backBtn.setTitle("返回", for: UIControlState.normal)
@@ -166,7 +160,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         IMG_Width = (Screen_Width-100)/10;
     }
     
-    // MARK: 读取视频帧
+    // MARK: -  读取视频帧
     func analysisVideoFrames() {
         // 初始化asset对象
         let videoAsset = AVURLAsset.init(url: self.videoUrl as! URL)
@@ -192,7 +186,6 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         generator.generateCGImagesAsynchronously(forTimes:framesArray as! [NSValue]) { (requestedTime:CMTime, img:CGImage?, actualTime:CMTime, result:AVAssetImageGeneratorResult, error:Error?) in
             
             if result == AVAssetImageGeneratorResult.succeeded {
-            
                 let thumImgView = UIImageView.init(frame: CGRect.init(x: 50+count*IMG_Width, y: 0, width: IMG_Width, height: 70))
                 thumImgView.image = UIImage.init(cgImage: img!)
                 
@@ -213,8 +206,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         }
     }
     
-    
-    // MARK: 播放器初始化
+    // MARK: -  播放器初始化
     func initPlayer(videoUrl:NSURL) {
         playerItem = AVPlayerItem.init(url:videoUrl as URL)
         playerItem.addObserver(self, forKeyPath: "status", options: NSKeyValueObservingOptions.new, context: nil)
@@ -222,16 +214,13 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         player.addObserver(self, forKeyPath: "timeControlStatus", options: NSKeyValueObservingOptions.new, context: nil)
         playerLayer = AVPlayerLayer.init(player: player)
         playerLayer?.frame = CGRect.init(x: 0, y: 80, width: Screen_Width, height: Screen_Height-160)
-
         self.view.layer.addSublayer(playerLayer!)
     }
     
-    // MARK: KVO监听
+    // MARK: -  KVO监听
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "status"{
-            
             switch playerItem.status {
-                
             case AVPlayerItemStatus.unknown:
               print("unknow 未知状态不能播放")
                 break
@@ -250,19 +239,16 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
                 break
                 
             }
-            
         }
         else if keyPath == "timeControlStatus"{
             if player.timeControlStatus == AVPlayerTimeControlStatus.paused{
                 player.seek(to: CMTime.init(value: 0, timescale: 1))
                 player.play()
             }
-
         }
     }
 
-    
-    // MARK: 编辑区域手势拖动
+    // MARK: -  编辑区域手势拖动
     func moveOverlayView(gesture:UIPanGestureRecognizer) {
         switch gesture.state {
         case UIGestureRecognizerState.began:
@@ -347,14 +333,11 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
                     editScrollView.contentOffset = currentOffSet
                     touchPointX = point.x
                 }
-                
             }
-            
             break
             
         case UIGestureRecognizerState.ended:
             startTimer()
-            
             break
             
         default:
@@ -362,14 +345,14 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         }
     }
     
-    // MARK: 编辑区域循环播放
+    // MARK: -  编辑区域循环播放
     func repeatPlay() {
         let start = CMTimeMakeWithSeconds(Float64(startTime), player.currentTime().timescale)
         player.seek(to: start, toleranceBefore: kCMTimeZero, toleranceAfter: kCMTimeZero)
         player.play()
     }
     
-    // MARK: 播放条移动
+    // MARK: -  播放条移动
     func lineMove() {
         let duarationTime = (endPointX-startPointX-20)/Screen_Width*10;
         linePositionX = linePositionX + 0.01*(endPointX - startPointX-20)/duarationTime;
@@ -380,7 +363,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         line.frame = CGRect.init(x: linePositionX, y: 0, width: 3, height: 50)
     }
     
-    // MARK: 视频裁剪
+    // MARK: -  视频裁剪
     func notifyDelegateOfDidChange(){
         tempVideoPath = NSTemporaryDirectory().appending("tmpMov.mov")
         deleteTempFile()
@@ -406,6 +389,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
             case AVAssetExportSessionStatus.cancelled:
                     print("Export Canceled")
                 break
+                
             case AVAssetExportSessionStatus.completed:
                     print("Export completed")
                 weak var weakSelf = self
@@ -424,7 +408,6 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
                 
             default:
                 print("Export other status");
-                
                 break
             }
         })
@@ -453,14 +436,13 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
             if (error != nil) {
                 print("file remove error, " + (error?.localizedDescription)!)
             }
-            
         }
         else {
             print("no file by that name")
         }
     }
     
-    // MARK: 开启计时器
+    // MARK: -  开启计时器
     func startTimer() {
         let duarationTime = (endPointX-startPointX-20)/Screen_Width*10;
         line.isHidden = false
@@ -472,14 +454,14 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         repeatTimer.fire()
     }
     
-    // MARK: 关闭计时器
+    // MARK: -  关闭计时器
     func stopTimer() {
         repeatTimer.invalidate()
         lineMoveTimer.invalidate()
         line.isHidden = true
     }
     
-    // MARK: UIScrollViewDelegate
+    // MARK: -  UIScrollViewDelegate
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         stopTimer()
     }
@@ -512,7 +494,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         }
     }
     
-    // MARK: 释放引用
+    // MARK: -  释放引用
     func invalidatePlayer() {
         stopTimer()
         player.removeObserver(self, forKeyPath: "timeControlStatus")
@@ -520,7 +502,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
         playerItem.removeObserver(self, forKeyPath: "status")
     }
     
-    // MARK: 获取颜色方法
+    // MARK: -  获取颜色方法
     func getColor(R:CGFloat , G:CGFloat ,B:CGFloat) -> UIColor {
         return UIColor.init(colorLiteralRed: Float(R)/255.0, green: Float(G)/255.0, blue: Float(B)/255.0, alpha: 1.0)
     }
