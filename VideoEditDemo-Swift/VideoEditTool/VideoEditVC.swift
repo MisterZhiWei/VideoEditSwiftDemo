@@ -414,7 +414,7 @@ class VideoEditVC: UIViewController,UIScrollViewDelegate {
     }
     
     func videoDidFinishedSaved(videoPath:NSString, error:NSError, contextInfo:UnsafeMutableRawPointer?) {
-        if (error != nil) {
+        if (error as? NSError) {
             print("保存到相册失败")
         }
         else {
